@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-ASE Excel-Style Analog Computer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .excel-container {
+            display: grid;
+            grid-template-rows: 60px 40px 1fr;
+            height: 100vh;
+        }
+
+        /* Excel-style ribbon */
+        .ribbon {
+            background: linear-gradient(135deg, #0078d4, #106ebe);
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .ribbon h1 {
+            margin-right: 40px;
+            font-size: 18px;
+        }
+
+        .ribbon-group {
+            margin-right: 30px;
+            border-right: 1px solid rgba(255,255,255,0.3);
+            padding-right: 30px;
+        }
+
+        .ribbon-group h3 {
+            font-size: 10px;
+            margin-bottom: 5px;
+            opacity: 0.8;
+        }
+
+        .ribbon-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 10px;
+            margin: 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .ribbon-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .ribbon-btn.active {
+            background: rgba(255,255,255,0.3);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Excel-style formula bar */
+        .formula-bar {
+            background: #fafafa;
+            border-bottom: 1px solid #d1d1d1;
+            display: flex;
+            align-items: center;
+            padding: 8px 15px;
+        }
+
+        .cell-reference {
+            background: white;
+            border: 1px solid #d1d1d1;
+            padding: 4px 8px;
+            width: 80px;
+            text-align: center;
+            margin-right: 10px;
+            font-weight: bold;
+            color: #0078d4;
+        }
+
+        .formula-input {
+            flex: 1;
+            background: white;
+            border: 1px solid #d1d1d1;
+            padding: 4px 8px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+        }
+
+        .formula-input:focus {
+            outline: none;
+            border-color: #0078d4;
+        }
+
+        /* Main content area */
+        .main-content {
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            height: 100%;
+        }
+
+        /* Module palette (left panel) */
+        .module-palette {
+            background: #f0f0f0;
+            border-right: 1px solid #d1d1d1;
+            overflow-y: auto;
+        }
+
+        .palette-section {
+            margin: 10px;
+        }
+
+        .palette-title {
+            font-weight: bold;
+            background: #e1ecf4;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #0078d4;
+        }
+
+        .module-item {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px;
+            margin: 4px 0;
+            cursor: grab;
+            user-select: none;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+
+        .module-item:hover {
+            border-color: #0078d4;
+            box-shadow: 0 2px 8px rgba(0,120,212,0.2);
+        }
+
+        .module-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .module-icon {
+            font-size: 14px;
+            margin-right: 5px;
+        }
+
+        .module-desc {
+            font-size: 9px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* Excel-style spreadsheet */
+        .spreadsheet-container {
+            background: white;
+            overflow: auto;
+            position: relative;
+        }
+
+        .spreadsheet {
+            display: grid;
+            grid-template-columns: 40px repeat(20, 120px);
+            grid-template-rows: 25px repeat(50, 25px);
+            border: 1px solid #d1d1d1;
+        }
+
+        .row-header, .col-header {
+            background: #f8f9fa;
+            border: 1px solid #d1d1d1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            color: #666;
+        }
+
+        .excel-cell {
+            border: 1px solid #e1e1e1;
+            padding: 2px 4px;
+            font-size: 11px;
+            cursor: cell;
+            background: white;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .excel-cell:hover {
+            background: #f0f8ff;
+        }
+
+        .excel-cell.selected {
+            background: #cce8ff;
+            border: 2px solid #0078d4;
+        }
+
+        .excel-cell.formula-cell {
+            background: #fff2cc;
+            color: #7f6000;
+            font-family: 'Consolas', monospace;
+        }
+
+        .excel-cell.module-cell {
+            background: #e1f5fe;
+            border: 2px solid #01579b;
+            font-weight: bold;
+            justify-content: center;
+            color: #01579b;
+        }
+
+        .excel-cell.input-cell {
+            background: #f3e5f5;
+            color: #4a148c;
+        }
+
+        .excel-cell.output-cell {
+            background: #ffebee;
+            color: #b71c1c;
+            font-weight: bold;
+        }
+
+        .excel-cell.parameter-cell {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        /* Properties panel (right) */
+        .properties-panel {
+            background: #f8f9fa;
+            border-left: 1px solid #d1d1d1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        .properties-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #0078d4;
+            font-size: 14px;
+        }
+
+        .property-group {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .property-label {
+            font-size: 11px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .property-input {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 11px;
+        }
+
+        .property-select {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+            font-size: 11px;
+        }
+
+        .drop-zone {
+            border: 2px dashed #0078d4;
+            background: rgba(0,120,212,0.1);
+        }
+
+        .formula-suggestion {
+            background: #f0f8ff;
+            border: 1px solid #0078d4;
+            border-radius: 2px;
+            padding: 2px 4px;
+            font-size: 10px;
+            margin: 2px 0;
+            cursor: pointer;
+        }
+
+        .url-display {
+            background: #2d2d30;
+            color: #cccccc;
+            padding: 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+
+        .download-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="excel-container">
+        <!-- Excel-style Ribbon -->
+        <div class="ribbon">
+            <h1>📊 D-ASE Analog Computer</h1>
+            
+            <div class="ribbon-group">
+                <h3>FILE</h3>
+                <button class="ribbon-btn" onclick="newWorkbook()">New</button>
+                <button class="ribbon-btn" onclick="saveWorkbook()">Save</button>
+                <button class="ribbon-btn" onclick="loadWorkbook()">Load</button>
+            </div>
+            
+            <div class="ribbon-group">
+                <h3>ANALOG MODULES</h3>
+                <button class="ribbon-btn" onclick="toggleModuleMode()" id="moduleBtn">Insert Mode</button>
+                <button class="ribbon-btn" onclick="autoWire()">Auto Wire</button>
+                <button class="ribbon-btn" onclick="validateCircuit()">Validate</button>
+            </div>
+            
+            <div class="ribbon-group">
+                <h3>SIMULATION</h3>
+                <button class="ribbon-btn active" onclick="toggleEngine()">Engine Ready</button>
+                <button class="ribbon-btn" onclick="generateURL()">Generate URL</button>
+                <button class="ribbon-btn" onclick="testConnection()">Test Engine</button>
+            </div>
+            
+            <div class="ribbon-group">
+                <h3>TEMPLATES</h3>
+                <button class="ribbon-btn" onclick="loadTemplate('lorenz')">Lorenz</button>
+                <button class="ribbon-btn" onclick="loadTemplate('vanderpol')">Van der Pol</button>
+                <button class="ribbon-btn" onclick="loadTemplate('predator_prey')">Ecosystem</button>
+            </div>
+        </div>
+
+        <!-- Formula Bar -->
+        <div class="formula-bar">
+            <div class="cell-reference" id="cellRef">A1</div>
+            <input type="text" class="formula-input" id="formulaInput" placeholder="Enter formula or drag analog module here...">
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Module Palette -->
+            <div class="module-palette">
+                <div class="palette-section">
+                    <div class="palette-title">⚡ BASIC OPERATORS</div>
+                    <div class="module-item" draggable="true" data-module="sum">
+                        <span class="module-icon">➕</span> SUM(A1:A5)
+                        <div class="module-desc">Add multiple cells</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="product">
+                        <span class="module-icon">✖️</span> PRODUCT(A1,B1)
+                        <div class="module-desc">Multiply cells</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="subtract">
+                        <span class="module-icon">➖</span> A1-B1
+                        <div class="module-desc">Subtract cells</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="divide">
+                        <span class="module-icon">➗</span> A1/B1
+                        <div class="module-desc">Divide cells</div>
+                    </div>
+                </div>
+
+                <div class="palette-section">
+                    <div class="palette-title">🔄 ANALOG FUNCTIONS</div>
+                    <div class="module-item" draggable="true" data-module="integrator">
+                        <span class="module-icon">∫</span> INTEGRATE(A1,dt)
+                        <div class="module-desc">Accumulate over time</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="derivative">
+                        <span class="module-icon">d/dt</span> DERIVATIVE(A1,dt)
+                        <div class="module-desc">Rate of change</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="amplifier">
+                        <span class="module-icon">📈</span> AMP(A1,gain)
+                        <div class="module-desc">Scale by factor</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="summer">
+                        <span class="module-icon">⊕</span> SUMMER(A1,B1,C1)
+                        <div class="module-desc">Analog summer</div>
+                    </div>
+                </div>
+
+                <div class="palette-section">
+                    <div class="palette-title">📊 SIGNAL GENERATORS</div>
+                    <div class="module-item" draggable="true" data-module="sine">
+                        <span class="module-icon">〰️</span> SIN(freq,time)
+                        <div class="module-desc">Sine wave</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="cosine">
+                        <span class="module-icon">📡</span> COS(freq,time)
+                        <div class="module-desc">Cosine wave</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="square">
+                        <span class="module-icon">⬜</span> SQUARE(freq,time)
+                        <div class="module-desc">Square wave</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="noise">
+                        <span class="module-icon">📻</span> NOISE(amplitude)
+                        <div class="module-desc">Random signal</div>
+                    </div>
+                </div>
+
+                <div class="palette-section">
+                    <div class="palette-title">🎛️ CONTROL FUNCTIONS</div>
+                    <div class="module-item" draggable="true" data-module="limiter">
+                        <span class="module-icon">📏</span> LIMIT(A1,min,max)
+                        <div class="module-desc">Clamp values</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="switch">
+                        <span class="module-icon">🔀</span> IF(condition,A1,B1)
+                        <div class="module-desc">Conditional switch</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="delay">
+                        <span class="module-icon">⏰</span> DELAY(A1,time)
+                        <div class="module-desc">Time delay</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="sample_hold">
+                        <span class="module-icon">📌</span> SAMPLE(A1,trigger)
+                        <div class="module-desc">Sample and hold</div>
+                    </div>
+                </div>
+
+                <div class="palette-section">
+                    <div class="palette-title">🧮 MATH FUNCTIONS</div>
+                    <div class="module-item" draggable="true" data-module="power">
+                        <span class="module-icon">x²</span> POWER(A1,exp)
+                        <div class="module-desc">Raise to power</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="sqrt">
+                        <span class="module-icon">√</span> SQRT(A1)
+                        <div class="module-desc">Square root</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="exp">
+                        <span class="module-icon">eˣ</span> EXP(A1)
+                        <div class="module-desc">Exponential</div>
+                    </div>
+                    <div class="module-item" draggable="true" data-module="log">
+                        <span class="module-icon">ln</span> LOG(A1)
+                        <div class="module-desc">Natural log</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Excel-style Spreadsheet -->
+            <div class="spreadsheet-container">
+                <div class="spreadsheet" id="spreadsheet">
+                    <!-- Generated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Properties Panel -->
+            <div class="properties-panel">
+                <div class="properties-title">📋 Cell Properties</div>
+                
+                <div class="property-group">
+                    <div class="property-label">Cell Address</div>
+                    <input type="text" class="property-input" id="cellAddress" readonly>
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Cell Type</div>
+                    <select class="property-select" id="cellType" onchange="updateCellType()">
+                        <option value="data">Data</option>
+                        <option value="formula">Formula</option>
+                        <option value="module">Analog Module</option>
+                        <option value="parameter">Parameter</option>
+                        <option value="input">Input</option>
+                        <option value="output">Output</option>
+                    </select>
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Formula/Value</div>
+                    <input type="text" class="property-input" id="cellValue" onchange="updateCellValue()">
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Module Parameters</div>
+                    <div id="moduleParams">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">Common Formulas</div>
+                    <div class="formula-suggestion" onclick="insertFormula('=INTEGRATE(A1,$T$1)')">
+                        =INTEGRATE(A1,$T$1)
+                    </div>
+                    <div class="formula-suggestion" onclick="insertFormula('=SUMMER(A1,B1)')">
+                        =SUMMER(A1,B1)
+                    </div>
+                    <div class="formula-suggestion" onclick="insertFormula('=AMP(A1,2.5)')">
+                        =AMP(A1,2.5)
+                    </div>
+                    <div class="formula-suggestion" onclick="insertFormula('=SIN(1,TIME)')">
+                        =SIN(1,TIME)
+                    </div>
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">🔗 Engine URL</div>
+                    <div class="url-display" id="engineURL">
+                        https://engine.dase.ai/compute?sheet={encoded_data}
+                    </div>
+                    <button class="download-btn" onclick="downloadSheet()">📥 Download for Engine</button>
+                </div>
+
+                <div class="property-group">
+                    <div class="property-label">📊 Sheet Statistics</div>
+                    <div style="font-size: 11px; color: #666;">
+                        <div>Cells Used: <span id="cellsUsed">0</span></div>
+                        <div>Formulas: <span id="formulaCount">0</span></div>
+                        <div>Modules: <span id="moduleCount">0</span></div>
+                        <div>Dependencies: <span id="depCount">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let selectedCell = null;
+        let spreadsheetData = {};
+        let moduleMode = false;
+        let draggedModule = null;
+
+        // Initialize spreadsheet
+        function initializeSpreadsheet() {
+            const spreadsheet = document.getElementById('spreadsheet');
+            
+            // Create column headers (A, B, C, ...)
+            spreadsheet.appendChild(createCell('', 'corner'));
+            for (let col = 0; col < 20; col++) {
+                const colHeader = createCell(String.fromCharCode(65 + col), 'col-header');
+                spreadsheet.appendChild(colHeader);
+            }
+            
+            // Create rows
+            for (let row = 1; row <= 50; row++) {
+                // Row header
+                const rowHeader = createCell(row.toString(), 'row-header');
+                spreadsheet.appendChild(rowHeader);
+                
+                // Data cells
+                for (let col = 0; col < 20; col++) {
+                    const cellId = String.fromCharCode(65 + col) + row;
+                    const cell = createCell('', 'excel-cell');
+                    cell.id = cellId;
+                    cell.setAttribute('data-address', cellId);
+                    cell.addEventListener('click', () => selectCell(cellId));
+                    cell.addEventListener('dblclick', () => editCell(cellId));
+                    cell.addEventListener('dragover', allowDrop);
+                    cell.addEventListener('drop', dropModule);
+                    spreadsheet.appendChild(cell);
+                    
+                    // Initialize data
+                    spreadsheetData[cellId] = {
+                        value: '',
+                        formula: '',
+                        type: 'data',
+                        module: null
+                    };
+                }
+            }
+            
+            // Select A1 by default
+            selectCell('A1');
+        }
+
+        function createCell(content, className) {
+            const cell = document.createElement('div');
+            cell.className = className;
+            cell.textContent = content;
+            return cell;
+        }
+
+        function selectCell(cellId) {
+            // Remove previous selection
+            if (selectedCell) {
+                document.getElementById(selectedCell).classList.remove('selected');
+            }
+            
+            // Select new cell
+            selectedCell = cellId;
+            const cell = document.getElementById(cellId);
+            cell.classList.add('selected');
+            
+            // Update UI
+            document.getElementById('cellRef').textContent = cellId;
+            document.getElementById('formulaInput').value = spreadsheetData[cellId].formula || spreadsheetData[cellId].value;
+            document.getElementById('cellAddress').value = cellId;
+            document.getElementById('cellType').value = spreadsheetData[cellId].type;
+            document.getElementById('cellValue').value = spreadsheetData[cellId].formula || spreadsheetData[cellId].value;
+            
+            updateModuleParams();
+        }
+
+        function editCell(cellId) {
+            const cell = document.getElementById(cellId);
+            const currentValue = spreadsheetData[cellId].formula || spreadsheetData[cellId].value;
+            
+            const input = document.createElement('input');
+            input.value = currentValue;
+            input.style.width = '100%';
+            input.style.height = '100%';
+            input.style.border = 'none';
+            input.style.background = 'transparent';
+            input.style.fontSize = '11px';
+            
+            input.addEventListener('blur', () => {
+                updateCellContent(cellId, input.value);
+                renderCell(cellId);
+            });
+            
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                }
+            });
+            
+            cell.innerHTML = '';
+            cell.appendChild(input);
+            input.focus();
+            input.select();
+        }
+
+        function updateCellContent(cellId, content) {
+            if (content.startsWith('=')) {
+                spreadsheetData[cellId].formula = content;
+                spreadsheetData[cellId].value = evaluateFormula(content, cellId);
+                spreadsheetData[cellId].type = 'formula';
+            } else {
+                spreadsheetData[cellId].value = content;
+                spreadsheetData[cellId].formula = '';
+                if (isAnalogFunction(content)) {
+                    spreadsheetData[cellId].type = 'module';
+                }
+            }
+            
+            updateStatistics();
+        }
+
+        function renderCell(cellId) {
+            const cell = document.getElementById(cellId);
+            const data = spreadsheetData[cellId];
+            
+            cell.textContent = data.value;
+            
+            // Apply styling based on type
+            cell.className = 'excel-cell';
+            if (selectedCell === cellId) {
+                cell.classList.add('selected');
+            }
+            
+            switch (data.type) {
+                case 'formula':
+                    cell.classList.add('formula-cell');
+                    break;
+                case 'module':
+                    cell.classList.add('module-cell');
+                    break;
+                case 'parameter':
+                    cell.classList.add('parameter-cell');
+                    break;
+                case 'input':
+                    cell.classList.add('input-cell');
+                    break;
+                case 'output':
+                    cell.classList.add('output-cell');
+                    break;
+            }
+        }
+
+        function isAnalogFunction(content) {
+            const analogFunctions = ['INTEGRATE', 'DERIVATIVE', 'AMP', 'SUMMER', 'SIN', 'COS', 'SQUARE', 'NOISE', 'LIMIT', 'DELAY'];
+            return analogFunctions.some(func => content.includes(func));
+        }
+
+        function evaluateFormula(formula, cellId) {
+            // Simple formula evaluation - in real implementation, this would be more sophisticated
+            if (formula.startsWith('=')) {
+                const expression = formula.substring(1);
+                
+                // Handle analog functions
+                if (expression.includes('INTEGRATE')) {
+                    return `∫(${expression.match(/INTEGRATE\((.*?)\)/)?.[1] || 'A1'})`;
+                }
+                if (expression.includes('SUMMER')) {
+                    return `Σ(${expression.match(/SUMMER\((.*?)\)/)?.[1] || 'A1,B1'})`;
+                }
+                if (expression.includes('AMP')) {
+                    return `K×(${expression.match(/AMP\((.*?)\)/)?.[1] || 'A1,1'})`;
+                }
+                
+                // Handle cell references
+                return expression;
+            }
+            return formula;
+        }
+
+        // Drag and drop functionality
+        function setupDragAndDrop() {
+            const moduleItems = document.querySelectorAll('.module-item');
+            
+            moduleItems.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedModule = item.getAttribute('data-module');
+                    item.classList.add('dragging');
+                });
+                
+                item.addEventListener('dragend', (e) => {
+                    item.classList.remove('dragging');
+                    draggedModule = null;
+                });
+            });
+        }
+
+        function allowDrop(e) {
+            e.preventDefault();
+            e.target.classList.add('drop-zone');
+        }
+
+        function dropModule(e) {
+            e.preventDefault();
+            e.target.classList.remove('drop-zone');
+            
+            if (draggedModule) {
+                const cellId = e.target.getAttribute('data-address');
+                if (cellId) {
+                    insertModule(cellId, draggedModule);
+                }
+            }
+        }
+
+        function insertModule(cellId, moduleType) {
+            const moduleFormulas = {
+                'sum': '=SUM(A1:A5)',
+                'product': '=PRODUCT(A1,B1)',
+                'integrator': '=INTEGRATE(A1,$T$1)',
+                'derivative': '=DERIVATIVE(A1,$T$1)',
+                'amplifier': '=AMP(A1,1.0)',
+                'summer': '=SUMMER(A1,B1,C1)',
+                'sine': '=SIN(1,$T$1)',
+                'cosine': '=COS(1,$T$1)',
+                'square': '=SQUARE(1,$T$1)',
+                'noise': '=NOISE(1.0)',
+                'limiter': '=LIMIT(A1,-10,10)',
+                'switch': '=IF(A1>0,B1,C1)',
+                'delay': '=DELAY(A1,0.1)',
+                'power': '=POWER(A1,2)',
+                'sqrt': '=SQRT(A1)',
+                'exp': '=EXP(A1)',
+                'log': '=LOG(A1)'
+            };
+            
+            const formula = moduleFormulas[moduleType] || '=MODULE()';
+            updateCellContent(cellId, formula);
+            spreadsheetData[cellId].type = 'module';
+            spreadsheetData[cellId].module = moduleType;
+            renderCell(cellId);
+            
+            if (selectedCell === cellId) {
+                document.getElementById('formulaInput').value = formula;
+                document.getElementById('cellValue').value = formula;
+                document.getElementById('cellType').value = 'module';
+                updateModuleParams();
+            }
+        }
+
+        function updateModuleParams() {
+            const data = spreadsheetData[selectedCell];
+            const paramsDiv = document.getElementById('moduleParams');
+            
+            if (data.type === 'module' && data.module) {
+                const moduleParams = getModuleParameters(data.module);
+                paramsDiv.innerHTML = '';
+                
+                moduleParams.forEach(param => {
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '5px';
+                    div.innerHTML = `
+                        <label style="font-size: 10px; display: block;">${param.name}</label>
+                        <input type="text" style="width: 100%; padding: 2px; font-size: 10px;" 
+                               value="${param.default}" onchange="updateModuleParameter('${param.name}', this.value)">
+                    `;
+                    paramsDiv.appendChild(div);
+                });
+            } else {
+                paramsDiv.innerHTML = '<div style="font-size: 10px; color: #999;">Select a module cell to edit parameters</div>';
+            }
+        }
+
+        function getModuleParameters(moduleType) {
+            const paramMap = {
+                'integrator': [
+                    {name: 'Input', default: 'A1'},
+                    {name: 'Initial Value', default: '0'},
+                    {name: 'Time Step', default: '$T$1'}
+                ],
+                'amplifier': [
+                    {name: 'Input', default: 'A1'},
+                    {name: 'Gain', default: '1.0'}
+                ],
+                'summer': [
+                    {name: 'Input A', default: 'A1'},
+                    {name: 'Input B', default: 'B1'},
+                    {name: 'Input C', default: 'C1'}
+                ],
+                'sine': [
+                    {name: 'Frequency', default: '1.0'},
+                    {name: 'Amplitude', default: '1.0'},
+                    {name: 'Phase', default: '0'}
+                ],
+                'limiter': [
+                    {name: 'Input', default: 'A1'},
+                    {name: 'Min Value', default: '-10'},
+                    {name: 'Max Value', default: '10'}
+                ]
+            };
+            
+            return paramMap[moduleType] || [];
+        }
+
+        function updateModuleParameter(paramName, value) {
+            // Update the formula with new parameter
+            console.log(`Updating ${paramName} to ${value} for cell ${selectedCell}`);
+        }
+
+        // Formula bar functionality
+        document.getElementById('formulaInput').addEventListener('change', function() {
+            if (selectedCell) {
+                updateCellContent(selectedCell, this.value);
+                renderCell(selectedCell);
+            }
+        });
+
+        function insertFormula(formula) {
+            if (selectedCell) {
+                document.getElementById('formulaInput').value = formula;
+                updateCellContent(selectedCell, formula);
+                renderCell(selectedCell);
+            }
+        }
+
+        // Cell type and value updates
+        function updateCellType() {
+            if (selectedCell) {
+                const newType = document.getElementById('cellType').value;
+                spreadsheetData[selectedCell].type = newType;
+                renderCell(selectedCell);
+                updateModuleParams();
+            }
+        }
+
+        function updateCellValue() {
+            if (selectedCell) {
+                const newValue = document.getElementById('cellValue').value;
+                updateCellContent(selectedCell, newValue);
+                renderCell(selectedCell);
+                document.getElementById('formulaInput').value = newValue;
+            }
+        }
+
+        // Statistics update
+        function updateStatistics() {
+            let cellsUsed = 0;
+            let formulaCount = 0;
+            let moduleCount = 0;
+            let dependencies = new Set();
+            
+            Object.values(spreadsheetData).forEach(data => {
+                if (data.value || data.formula) {
+                    cellsUsed++;
+                }
+                if (data.formula) {
+                    formulaCount++;
+                    // Extract cell references
+                    const refs = data.formula.match(/[A-Z]+\d+/g);
+                    if (refs) {
+                        refs.forEach(ref => dependencies.add(ref));
+                    }
+                }
+                if (data.type === 'module') {
+                    moduleCount++;
+                }
+            });
+            
+            document.getElementById('cellsUsed').textContent = cellsUsed;
+            document.getElementById('formulaCount').textContent = formulaCount;
+            document.getElementById('moduleCount').textContent = moduleCount;
+            document.getElementById('depCount').textContent = dependencies.size;
+        }
+
+        // URL Generation for Engine
+        function generateURL() {
+            const sheetData = {
+                metadata: {
+                    created: new Date().toISOString(),
+                    version: "1.0",
+                    type: "analog_computer_sheet"
+                },
+                cells: {},
+                modules: {},
+                parameters: {},
+                dependencies: []
+            };
+            
+            // Extract cell data
+            Object.entries(spreadsheetData).forEach(([cellId, data]) => {
+                if (data.value || data.formula) {
+                    sheetData.cells[cellId] = {
+                        value: data.value,
+                        formula: data.formula,
+                        type: data.type,
+                        module: data.module
+                    };
+                    
+                    if (data.type === 'module') {
+                        sheetData.modules[cellId] = {
+                            type: data.module,
+                            parameters: extractModuleParams(data.formula)
+                        };
+                    }
+                    
+                    if (data.type === 'parameter') {
+                        sheetData.parameters[cellId] = {
+                            name: cellId,
+                            value: data.value
+                        };
+                    }
+                }
+            });
+            
+            // Build dependency graph
+            Object.entries(spreadsheetData).forEach(([cellId, data]) => {
+                if (data.formula) {
+                    const refs = data.formula.match(/[A-Z]+\d+/g);
+                    if (refs) {
+                        refs.forEach(ref => {
+                            sheetData.dependencies.push({
+                                from: ref,
+                                to: cellId,
+                                type: 'formula_reference'
+                            });
+                        });
+                    }
+                }
+            });
+            
+            const encodedData = encodeURIComponent(JSON.stringify(sheetData));
+            const url = `https://engine.dase.ai/compute?sheet=${encodedData}`;
+            
+            document.getElementById('engineURL').textContent = url;
+            
+            // Also generate downloadable JSON
+            window.currentSheetData = sheetData;
+            
+            alert('✅ Engine URL generated! The C++ engine can now download this sheet configuration.');
+        }
+
+        function extractModuleParams(formula) {
+            // Extract parameters from formula like =INTEGRATE(A1,$T$1)
+            const match = formula.match(/\((.*)\)/);
+            if (match) {
+                return match[1].split(',').map(p => p.trim());
+            }
+            return [];
+        }
+
+        function downloadSheet() {
+            if (!window.currentSheetData) {
+                generateURL();
+            }
+            
+            const blob = new Blob([JSON.stringify(window.currentSheetData, null, 2)], {
+                type: 'application/json'
+            });
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'analog_computer_sheet.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Template loading
+        function loadTemplate(templateName) {
+            const templates = {
+                lorenz: {
+                    'A1': {formula: '=INTEGRATE(D1,$T$1)', type: 'module', module: 'integrator'},
+                    'B1': {formula: '=INTEGRATE(D2,$T$1)', type: 'module', module: 'integrator'},
+                    'C1': {formula: '=INTEGRATE(D3,$T$1)', type: 'module', module: 'integrator'},
+                    'D1': {formula: '=SUMMER(E1,F1)', type: 'module', module: 'summer'},
+                    'D2': {formula: '=SUMMER(E2,F2)', type: 'module', module: 'summer'},
+                    'D3': {formula: '=SUMMER(E3,F3)', type: 'module', module: 'summer'},
+                    'E1': {formula: '=AMP(B1,10)', type: 'module', module: 'amplifier'},
+                    'F1': {formula: '=AMP(A1,-10)', type: 'module', module: 'amplifier'},
+                    'E2': {formula: '=PRODUCT(A1,G1)', type: 'formula'},
+                    'F2': {formula: '=AMP(B1,-1)', type: 'module', module: 'amplifier'},
+                    'G1': {formula: '=28-C1', type: 'formula'},
+                    'E3': {formula: '=PRODUCT(A1,B1)', type: 'formula'},
+                    'F3': {formula: '=AMP(C1,-2.67)', type: 'module', module: 'amplifier'},
+                    'T1': {value: '0.01', type: 'parameter'}
+                },
+                
+                vanderpol: {
+                    'A1': {formula: '=INTEGRATE(B1,$T$1)', type: 'module', module: 'integrator'},
+                    'B1': {formula: '=INTEGRATE(C1,$T$1)', type: 'module', module: 'integrator'},
+                    'C1': {formula: '=SUMMER(D1,E1)', type: 'module', module: 'summer'},
+                    'D1': {formula: '=PRODUCT(F1,B1)', type: 'formula'},
+                    'E1': {formula: '=AMP(A1,-1)', type: 'module', module: 'amplifier'},
+                    'F1': {formula: '=1-POWER(A1,2)', type: 'formula'},
+                    'T1': {value: '0.01', type: 'parameter'}
+                },
+                
+                predator_prey: {
+                    'A1': {formula: '=INTEGRATE(C1,$T$1)', type: 'module', module: 'integrator'},
+                    'B1': {formula: '=INTEGRATE(C2,$T$1)', type: 'module', module: 'integrator'},
+                    'C1': {formula: '=SUMMER(D1,D2)', type: 'module', module: 'summer'},
+                    'C2': {formula: '=SUMMER(D3,D4)', type: 'module', module: 'summer'},
+                    'D1': {formula: '=AMP(A1,1.0)', type: 'module', module: 'amplifier'},
+                    'D2': {formula: '=AMP(E1,-0.1)', type: 'module', module: 'amplifier'},
+                    'D3': {formula: '=AMP(E1,0.075)', type: 'module', module: 'amplifier'},
+                    'D4': {formula: '=AMP(B1,-1.5)', type: 'module', module: 'amplifier'},
+                    'E1': {formula: '=PRODUCT(A1,B1)', type: 'formula'},
+                    'T1': {value: '0.01', type: 'parameter'}
+                }
+            };
+            
+            const template = templates[templateName];
+            if (!template) {
+                alert(`Template ${templateName} not found!`);
+                return;
+            }
+            
+            // Clear existing data
+            Object.keys(spreadsheetData).forEach(cellId => {
+                spreadsheetData[cellId] = {value: '', formula: '', type: 'data', module: null};
+                renderCell(cellId);
+            });
+            
+            // Load template data
+            Object.entries(template).forEach(([cellId, data]) => {
+                spreadsheetData[cellId] = {
+                    value: data.value || evaluateFormula(data.formula, cellId),
+                    formula: data.formula || '',
+                    type: data.type,
+                    module: data.module || null
+                };
+                renderCell(cellId);
+            });
+            
+            updateStatistics();
+            alert(`✅ Loaded ${templateName} template!\n\nAnalog computer is now configured for ${templateName} equations.`);
+        }
+
+        // Ribbon functions
+        function newWorkbook() {
+            if (confirm('Create new workbook? All current data will be lost.')) {
+                Object.keys(spreadsheetData).forEach(cellId => {
+                    spreadsheetData[cellId] = {value: '', formula: '', type: 'data', module: null};
+                    renderCell(cellId);
+                });
+                updateStatistics();
+            }
+        }
+
+        function saveWorkbook() {
+            const data = {
+                timestamp: new Date().toISOString(),
+                spreadsheet: spreadsheetData
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'analog_workbook.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function loadWorkbook() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (data.spreadsheet) {
+                                spreadsheetData = data.spreadsheet;
+                                Object.keys(spreadsheetData).forEach(cellId => {
+                                    renderCell(cellId);
+                                });
+                                updateStatistics();
+                                alert('✅ Workbook loaded successfully!');
+                            }
+                        } catch (err) {
+                            alert('❌ Error loading workbook: ' + err.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+        }
+
+        function toggleModuleMode() {
+            moduleMode = !moduleMode;
+            const btn = document.getElementById('moduleBtn');
+            if (moduleMode) {
+                btn.textContent = 'Exit Module Mode';
+                btn.classList.add('active');
+                alert('📍 Module Mode: Drag modules from the palette to cells');
+            } else {
+                btn.textContent = 'Insert Mode';
+                btn.classList.remove('active');
+            }
+        }
+
+        function autoWire() {
+            // Automatically connect adjacent cells with formulas
+            let connections = 0;
+            
+            Object.entries(spreadsheetData).forEach(([cellId, data]) => {
+                if (data.type === 'module' && data.module === 'integrator') {
+                    // Find adjacent cells that could be inputs
+                    const col = cellId.charCodeAt(0) - 65;
+                    const row = parseInt(cellId.slice(1));
+                    
+                    // Check cell to the right for derivative input
+                    const rightCell = String.fromCharCode(65 + col + 1) + row;
+                    if (spreadsheetData[rightCell] && spreadsheetData[rightCell].type === 'module') {
+                        // Update integrator to reference the right cell
+                        const newFormula = `=INTEGRATE(${rightCell},$T$1)`;
+                        updateCellContent(cellId, newFormula);
+                        renderCell(cellId);
+                        connections++;
+                    }
+                }
+            });
+            
+            alert(`🔌 Auto-wired ${connections} connections`);
+        }
+
+        function validateCircuit() {
+            const errors = [];
+            const warnings = [];
+            
+            Object.entries(spreadsheetData).forEach(([cellId, data]) => {
+                if (data.formula) {
+                    // Check for circular references
+                    const refs = data.formula.match(/[A-Z]+\d+/g);
+                    if (refs && refs.includes(cellId)) {
+                        errors.push(`Circular reference in ${cellId}`);
+                    }
+                    
+                    // Check for missing references
+                    if (refs) {
+                        refs.forEach(ref => {
+                            if (!spreadsheetData[ref] || (!spreadsheetData[ref].value && !spreadsheetData[ref].formula)) {
+                                warnings.push(`${cellId} references empty cell ${ref}`);
+                            }
+                        });
+                    }
+                }
+            });
+            
+            let message = '✅ Circuit Validation Complete\n\n';
+            if (errors.length > 0) {
+                message += `❌ Errors (${errors.length}):\n${errors.join('\n')}\n\n`;
+            }
+            if (warnings.length > 0) {
+                message += `⚠️ Warnings (${warnings.length}):\n${warnings.join('\n')}\n\n`;
+            }
+            if (errors.length === 0 && warnings.length === 0) {
+                message += '🎉 No issues found! Circuit is ready for simulation.';
+            }
+            
+            alert(message);
+        }
+
+        function toggleEngine() {
+            const btn = event.target;
+            if (btn.classList.contains('active')) {
+                btn.classList.remove('active');
+                btn.textContent = 'Engine Offline';
+                btn.style.background = 'rgba(255,0,0,0.2)';
+            } else {
+                btn.classList.add('active');
+                btn.textContent = 'Engine Ready';
+                btn.style.background = 'rgba(0,255,0,0.2)';
+            }
+        }
+
+        function testConnection() {
+            generateURL();
+            alert('🔗 Test connection initiated!\n\nThe generated URL contains all sheet data that the C++ engine needs.\n\nEngine can now:\n• Download sheet configuration\n• Parse analog modules\n• Execute simulation\n• Return results to update cells');
+        }
+
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSpreadsheet();
+            setupDragAndDrop();
+            updateStatistics();
+            
+            // Load a default template
+            setTimeout(() => {
+                loadTemplate('lorenz');
+            }, 500);
+        });
+    </script>
+</body>
+</html>

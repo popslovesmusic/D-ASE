@@ -1,0 +1,90 @@
+# D-ASE .gitignore
+
+# Compiled executables
+*.exe
+*.obj
+*.o
+*.so
+*.dll
+*.dylib
+
+# Visual Studio
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.aps
+*.pch
+*.vspscc
+*.vssscc
+.vs/
+.vscode/
+
+# Build directories
+build/
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+
+# Generated documentation
+docs/html/
+docs/latex/
+docs/xml/
+docs/man/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+*~
+
+# Runtime generated files
+*.json
+!examples/*.json
+cell_*.json
+web_results.json
+grid_state.json
+analog_computer_sheet.json
+test_sheet.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+*.sublime-project
+*.sublime-workspace
+.idea/
+*.pro.user
+*.autosave
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Package managers
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backup files
+*.orig
+*.rej
