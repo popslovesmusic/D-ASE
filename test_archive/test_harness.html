@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-ASE Test Harness - JSON Communication Debug</title>
+    <style>
+        body {
+            font-family: 'Consolas', monospace;
+            background: #1e1e1e;
+            color: #ffffff;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        
+        .test-container {
+            background: #2d2d30;
+            border: 1px solid #3e3e42;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        
+        .test-header {
+            color: #4ec9b0;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #3e3e42;
+            padding-bottom: 10px;
+        }
+        
+        .test-button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-family: inherit;
+        }
+        
+        .test-button:hover {
+            background: #1177bb;
+        }
+        
+        .test-button.success {
+            background: #16825d;
+        }
+        
+        .test-button.error {
+            background: #f14c4c;
+        }
+        
+        .test-output {
+            background: #0c0c0c;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .json-display {
+            color: #ce9178;
+        }
+        
+        .error-text {
+            color: #f14c4c;
+        }
+        
+        .success-text {
+            color: #4ec9b0;
+        }
+        
+        .warning-text {
+            color: #dcdcaa;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success {
+            background: #16825d;
+        }
+        
+        .status-error {
+            background: #f14c4c;
+        }
+        
+        .status-pending {
+            background: #dcdcaa;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 D-ASE HTML/JavaScript Test Harness v1.0</h1>
+    <p>Debug tool for testing JSON communication between C++ engine and web interface</p>
+
+    <!-- Test 1: JSON File Access -->
+    <div class="test-container">
+        <div class="test-header">
+            <span class="status-indicator" id="test1-status"></span>
+            Test 1: JSON File Access
+        </div>
+        <p>Tests if web_results.json can be fetched from the web server</p>
+        <button class="test-button" onclick="test1_fetchJson()">🔍 Test JSON Fetch</button>
+        <div class="test-output" id="test1-output">Click button to run test...</div>
+    </div>
+
+    <!-- Test 2: JSON Structure Validation -->
+    <div class="test-container">
+        <div class="test-header">
+            <span class="status-indicator" id="test2-status"></span>
+            Test 2: JSON Structure Validation
+        </div>
+        <p>Validates that JSON contains expected fields (cells, performance)</p>
+        <button class="test-button" onclick="test2_validateStructure()">📋 Validate Structure</button>
+        <div class="test-output" id="test2-output">Click button to run test...</div>
+    </div>
+
+    <!-- Test 3: Performance Data Extraction -->
+    <div class="test-container">
+        <div class="test-header">
+            <span class="status-indicator" id="test3-status"></span>
+            Test 3: Performance Data Extraction
+        </div>
+        <p>Tests extraction of performance metrics from JSON</p>
+        <button class="test-button" onclick="test3_extractPerformance()">⚡ Extract Performance</button>
+        <div class="test-output" id="test3-output">Click button to run test...</div>
+    </div>
+
+    <!-- Test 4: Auto-refresh Simulation -->
+    <div class="test-container">
+        <div class="test-header">
+            <span class="status-indicator" id="test4-status"></span>
+            Test 4: Auto-refresh Simulation
+        </div>
+        <p>Simulates the loadResults() function from main interface</p>
+        <button class="test-button" onclick="test4_startAutoRefresh()">🔄 Start Auto-refresh</button>
+        <button class="test-button" onclick="test4_stopAutoRefresh()">⏹️ Stop</button>
+        <div class="test-output" id="test4-output">Click start to begin auto-refresh test...</div>
+    </div>
+
+    <!-- Test 5: Manual Engine Trigger -->
+    <div class="test-container">
+        <div class="test-header">
+            <span class="status-indicator" id="test5-status"></span>
+            Test 5: Manual Engine Trigger
+        </div>
+        <p>Instructions for manually running engine and checking results</p>
+        <button class="test-button" onclick="test5_engineInstructions()">📖 Show Instructions</button>
+        <div class="test-output" id="test5-output">Click button for engine test instructions...</div>
+    </div>
+
+    <!-- Live Data Display -->
+    <div class="test-container">
+        <div class="test-header">📊 Live Data Monitor</div>
+        <p>Real-time display of current JSON data</p>
+        <button class="test-button" onclick="updateLiveData()">🔄 Refresh Data</button>
+        <div class="test-output" id="live-data">No data loaded...</div>
+    </div>
+
+    <script>
+        let autoRefreshInterval = null;
+        let testData = null;
+
+        /**
+         * @brief Test 1: Basic JSON file fetch capability
+         * Tests if the web server can serve the JSON file
+         */
+        async function test1_fetchJson() {
+            const output = document.getElementById('test1-output');
+            const status = document.getElementById('test1-status');
+            
+            output.textContent = '🔍 Testing JSON fetch...\n';
+            status.className = 'status-indicator status-pending';
+            
+            try {
+                const response = await fetch('web_results.json');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const text = await response.text();
+                output.innerHTML = `<span class="success-text">✅ SUCCESS: JSON file fetched</span>\n\n<span class="json-display">${text}</span>`;
+                status.className = 'status-indicator status-success';
+                
+                // Store for other tests
+                testData = JSON.parse(text);
+                
+            } catch (error) {
+                output.innerHTML = `<span class="error-text">❌ ERROR: ${error.message}</span>\n\nPossible causes:\n- web_results.json doesn't exist\n- Web server not running\n- CORS policy blocking file access`;
+                status.className = 'status-indicator status-error';
+            }
+        }
+
+        /**
+         * @brief Test 2: JSON structure validation
+         * Checks if JSON has required fields for web interface
+         */
+        function test2_validateStructure() {
+            const output = document.getElementById('test2-output');
+            const status = document.getElementById('test2-status');
+            
+            if (!testData) {
+                output.innerHTML = '<span class="warning-text">⚠️ Run Test 1 first to load JSON data</span>';
+                status.className = 'status-indicator status-pending';
+                return;
+            }
+            
+            let results = '📋 JSON Structure Validation:\n\n';
+            let allValid = true;
+            
+            // Check required fields
+            const requiredFields = [
+                { path: 'cells', type: 'object' },
+                { path: 'cells.A1', type: 'object' },
+                { path: 'cells.A1.value', type: 'number' },
+                { path: 'cells.B1', type: 'object' },
+                { path: 'cells.B1.value', type: 'number' },
+                { path: 'performance', type: 'object' },
+                { path: 'performance.execution_time_ms', type: 'number' },
+                { path: 'performance.nodes_computed', type: 'number' }
+            ];
+            
+            requiredFields.forEach(field => {
+                const value = getNestedValue(testData, field.path);
+                const isValid = value !== undefined && typeof value === field.type;
+                
+                if (isValid) {
+                    results += `✅ ${field.path}: ${typeof value} = ${value}\n`;
+                } else {
+                    results += `❌ ${field.path}: MISSING or wrong type (expected ${field.type})\n`;
+                    allValid = false;
+                }
+            });
+            
+            if (allValid) {
+                results += '\n🎉 All required fields present and valid!';
+                status.className = 'status-indicator status-success';
+            } else {
+                results += '\n⚠️ Some required fields are missing or invalid';
+                status.className = 'status-indicator status-error';
+            }
+            
+            output.innerHTML = `<span class="${allValid ? 'success-text' : 'error-text'}">${results}</span>`;
+        }
+
+        /**
+         * @brief Test 3: Performance data extraction simulation
+         * Tests the exact code used in main interface
+         */
+        function test3_extractPerformance() {
+            const output = document.getElementById('test3-output');
+            const status = document.getElementById('test3-status');
+            
+            if (!testData) {
+                output.innerHTML = '<span class="warning-text">⚠️ Run Test 1 first to load JSON data</span>';
+                status.className = 'status-indicator status-pending';
+                return;
+            }
+            
+            let results = '⚡ Performance Data Extraction Test:\n\n';
+            
+            try {
+                // Simulate main interface performance extraction
+                if (testData.performance) {
+                    const execTime = testData.performance.execution_time_ms;
+                    const nodesComputed = testData.performance.nodes_computed;
+                    const throughput = (nodesComputed / execTime).toFixed(1);
+                    
+                    results += `✅ execution_time_ms: ${execTime} ms\n`;
+                    results += `✅ nodes_computed: ${nodesComputed}\n`;
+                    results += `✅ calculated throughput: ${throughput} nodes/ms\n\n`;
+                    
+                    // Test DOM update simulation
+                    results += '🔄 DOM Update Simulation:\n';
+                    results += `document.getElementById('execTime').textContent = "${execTime} ms"\n`;
+                    results += `document.getElementById('throughput').textContent = "${throughput} nodes/ms"\n`;
+                    results += `document.getElementById('nodesComputed').textContent = "${nodesComputed}"\n`;
+                    
+                    status.className = 'status-indicator status-success';
+                    output.innerHTML = `<span class="success-text">${results}</span>`;
+                } else {
+                    results += '❌ No performance object found in JSON';
+                    status.className = 'status-indicator status-error';
+                    output.innerHTML = `<span class="error-text">${results}</span>`;
+                }
+                
+            } catch (error) {
+                results += `❌ ERROR: ${error.message}`;
+                status.className = 'status-indicator status-error';
+                output.innerHTML = `<span class="error-text">${results}</span>`;
+            }
+        }
+
+        /**
+         * @brief Test 4: Auto-refresh simulation
+         * Simulates the 250ms auto-refresh from main interface
+         */
+        function test4_startAutoRefresh() {
+            const output = document.getElementById('test4-output');
+            const status = document.getElementById('test4-status');
+            
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            let refreshCount = 0;
+            output.textContent = '🔄 Starting auto-refresh simulation (250ms intervals)...\n\n';
+            status.className = 'status-indicator status-pending';
+            
+            autoRefreshInterval = setInterval(async () => {
+                refreshCount++;
+                const timestamp = new Date().toLocaleTimeString();
+                
+                try {
+                    const response = await fetch('web_results.json');
+                    const data = await response.json();
+                    
+                    const execTime = data.performance?.execution_time_ms || 'N/A';
+                    const a1Value = data.cells?.A1?.value || 'N/A';
+                    const b1Value = data.cells?.B1?.value || 'N/A';
+                    
+                    output.textContent += `${refreshCount.toString().padStart(3, '0')}: ${timestamp} - A1:${a1Value}, B1:${b1Value}, ExecTime:${execTime}ms\n`;
+                    output.scrollTop = output.scrollHeight;
+                    
+                    status.className = 'status-indicator status-success';
+                    
+                } catch (error) {
+                    output.textContent += `${refreshCount.toString().padStart(3, '0')}: ${timestamp} - ERROR: ${error.message}\n`;
+                    output.scrollTop = output.scrollHeight;
+                    status.className = 'status-indicator status-error';
+                }
+            }, 250);
+        }
+
+        function test4_stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+                
+                const output = document.getElementById('test4-output');
+                output.textContent += '\n⏹️ Auto-refresh stopped.\n';
+                
+                const status = document.getElementById('test4-status');
+                status.className = 'status-indicator status-pending';
+            }
+        }
+
+        /**
+         * @brief Test 5: Engine testing instructions
+         */
+        function test5_engineInstructions() {
+            const output = document.getElementById('test5-output');
+            const status = document.getElementById('test5-status');
+            
+            const instructions = `📖 Manual Engine Testing Instructions:
+
+1. Open command prompt in C:\\dase directory
+2. Run: json_bridge_v3_2_fixed.exe
+3. Observe console output showing execution time
+4. Click "Refresh Data" in Live Data Monitor below
+5. Check if new timestamp appears in JSON
+
+Expected engine output:
+⚡ D-ASE Zero-I/O Engine v3.2 (Web-Fixed)
+⚡ Computation Time: 0.0006 ms
+📡 Results written to web_results.json (web compatible)
+
+If this test harness shows the updated data but main interface doesn't,
+the issue is in the main interface JavaScript code.`;
+
+            output.textContent = instructions;
+            status.className = 'status-indicator status-pending';
+        }
+
+        /**
+         * @brief Update live data display
+         */
+        async function updateLiveData() {
+            const output = document.getElementById('live-data');
+            
+            try {
+                const response = await fetch('web_results.json');
+                const data = await response.json();
+                
+                const formatted = JSON.stringify(data, null, 2);
+                const timestamp = new Date().toLocaleTimeString();
+                
+                output.innerHTML = `<span class="success-text">📊 Data loaded at ${timestamp}:</span>\n\n<span class="json-display">${formatted}</span>`;
+                
+                // Update test data for other tests
+                testData = data;
+                
+            } catch (error) {
+                output.innerHTML = `<span class="error-text">❌ ERROR: ${error.message}</span>`;
+            }
+        }
+
+        /**
+         * @brief Helper function to get nested object values
+         * @param {Object} obj - Object to search
+         * @param {string} path - Dot-separated path (e.g., "cells.A1.value")
+         * @return {*} Value at path or undefined
+         */
+        function getNestedValue(obj, path) {
+            return path.split('.').reduce((current, key) => {
+                return current && current[key] !== undefined ? current[key] : undefined;
+            }, obj);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 D-ASE Test Harness initialized');
+            
+            // Set all status indicators to pending
+            ['test1-status', 'test2-status', 'test3-status', 'test4-status', 'test5-status'].forEach(id => {
+                document.getElementById(id).className = 'status-indicator status-pending';
+            });
+        });
+
+        // Clean up intervals on page unload
+        window.addEventListener('beforeunload', function() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>

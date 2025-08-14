@@ -1,7 +1,8 @@
 # D-ASE .gitignore
-
-# Compiled executables
+# D-ASE .gitignore
+# Compiled executables (exclude development builds but allow production)
 *.exe
+!dase/production/*.exe
 *.obj
 *.o
 *.so
@@ -87,4 +88,9 @@ yarn-error.log*
 
 # Backup files
 *.orig
-*.rejtest_archive/ 
+*.rej
+
+# Archive directories (development files)
+test_archive/
+ 
+!dase/production/*.exe 
